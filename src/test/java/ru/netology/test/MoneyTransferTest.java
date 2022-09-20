@@ -65,13 +65,6 @@ public class MoneyTransferTest {
         assertEquals(balance2 + sum, endBalance2);
     }
 
-    @Test
-    @DisplayName("Не должен переводить сумму,превышающую лимит карты")
-    void shouldNotTransferMoneyMoreThanCardLimit() {
-        sum = balance1 + 200;
-        val page = dashboardPage.click(dashboardPage.card2);
-        val card = DataHelper.getFirstCard().getNumber();
-        page.unsuccessful(Integer.toString(sum), card);
-    }
+
 }
 
