@@ -3,11 +3,12 @@ package ru.netology.test;
 
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
+
 import org.junit.jupiter.api.Test;
 import ru.netology.data.DataHelper;
 import ru.netology.page.DashboardPage;
 import ru.netology.page.LoginPage;
+import ru.netology.page.MoneyTransferPage;
 
 
 import static com.codeborne.selenide.Selenide.open;
@@ -16,10 +17,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 public class MoneyTransferTest {
-    int balance1;
-    int balance2;
-    int endBalance1;
-    int endBalance2;
+    int balanceFirstCard;
+    int balanceSecondCard;
+    int endBalanceFirstCard;
+    int endBalanceSecondCard;
     int sum;
     DashboardPage dashboardPage;
 
@@ -31,47 +32,84 @@ public class MoneyTransferTest {
         val verificationPage = loginPage.validLogin(authInfo);
         val verificationCode = DataHelper.getVerificationCodeFor(authInfo);
         dashboardPage = verificationPage.validVerify(verificationCode);
-        balance1 = dashboardPage.getFirstBalance();
-        balance2 = dashboardPage.getSecondBalance();
 
 
     }
 
     @Test
-    @DisplayName("Перевод денег сo второй карты на первую")
     void shouldTransferMoneyFromSecondToFirstCard() {
-        sum = 200;
-        val page = dashboardPage.click(dashboardPage.card1);
-        val card = DataHelper.getSecondCard().getNumber();
-        val dashboardPage2 = page.successful(Integer.toString(sum), card);
-        endBalance1 = dashboardPage2.getFirstBalance();
-        endBalance2 = dashboardPage2.getSecondBalance();
 
-        assertEquals(balance1 + sum, endBalance1);
-        assertEquals(balance2 - sum, endBalance2);
+        sum = 200;
+        balanceFirstCard = dashboardPage.getCardBalance("1");
+        balanceSecondCard = dashboardPage.getCardBalance("2");
+        dashboardPage.getMoneyTransferOnFirstCard();
+        val moneyTransferPage = new MoneyTransferPage();
+        moneyTransferPage.successful(DataHelper.getCardInfo("2"), "200");
+        endBalanceFirstCard = dashboardPage.getCardBalance("1");
+        endBalanceSecondCard = dashboardPage.getCardBalance("2");
+
+        assertEquals(balanceFirstCard + sum, endBalanceFirstCard);
+        assertEquals(balanceSecondCard - sum, endBalanceSecondCard);
     }
 
+
     @Test
-    @DisplayName("Перевод денег с первой карты на вторую")
     void shouldTransferMoneyFromFirstToSecondCard() {
-        sum = 200;
-        val page = dashboardPage.click(dashboardPage.card2);
-        val card = DataHelper.getFirstCard().getNumber();
-        val dashboardPage2 = page.successful(Integer.toString(sum), card);
-        endBalance1 = dashboardPage2.getFirstBalance();
-        endBalance2 = dashboardPage2.getSecondBalance();
 
-        assertEquals(balance1 - sum, endBalance1);
-        assertEquals(balance2 + sum, endBalance2);
+        sum = 200;
+        balanceFirstCard = dashboardPage.getCardBalance("1");
+        balanceSecondCard = dashboardPage.getCardBalance("2");
+        dashboardPage.getMoneyTransferOnSecondCard();
+        val moneyTransferPage = new MoneyTransferPage();
+        moneyTransferPage.successful(DataHelper.getCardInfo("1"), "200");
+        endBalanceFirstCard = dashboardPage.getCardBalance("1");
+        endBalanceSecondCard = dashboardPage.getCardBalance("2");
+
+        assertEquals(balanceFirstCard - sum, endBalanceFirstCard);
+        assertEquals(balanceSecondCard + sum, endBalanceSecondCard);
+    }
+
+
+    @Test
+    public void shouldReloadBalance() {
+        balanceFirstCard = dashboardPage.getCardBalance("1");
+        balanceSecondCard = dashboardPage.getCardBalance("2");
+        dashboardPage.reloadBalance();
+        endBalanceFirstCard = dashboardPage.getCardBalance("1");
+        endBalanceSecondCard = dashboardPage.getCardBalance("2");
+
+        assertEquals(balanceFirstCard, endBalanceFirstCard);
+        assertEquals(balanceSecondCard, endBalanceSecondCard);
+
+
     }
 
     @Test
-    @DisplayName("Не должен переводить сумму,превышающую баланс карты")
-    void shouldNotTransferMoneyMoreThanCardBalance() {
-        sum = balance1 + 200;
-        val page = dashboardPage.click(dashboardPage.card2);
-        val card = DataHelper.getFirstCard().getNumber();
-        page.unsuccessful(Integer.toString(sum), card);
+    public void shouldCancelBalance() {
+        balanceFirstCard = dashboardPage.getCardBalance("1");
+        balanceSecondCard = dashboardPage.getCardBalance("2");
+        dashboardPage.getMoneyTransferOnFirstCard();
+        dashboardPage.cancelBalance();
+        endBalanceFirstCard = dashboardPage.getCardBalance("1");
+        endBalanceSecondCard = dashboardPage.getCardBalance("2");
+
+        assertEquals(balanceFirstCard, endBalanceFirstCard);
+        assertEquals(balanceSecondCard, endBalanceSecondCard);
+
     }
+
+
+    @Test
+    public void shouldNotTransferMoneyMoreThanCardBalance() {
+
+        String sumAboveBalance = String.valueOf(dashboardPage.getCardBalance("1") + 200);
+        endBalanceFirstCard = dashboardPage.getCardBalance("1");
+        endBalanceSecondCard = dashboardPage.getCardBalance("2");
+        dashboardPage.getMoneyTransferOnFirstCard();
+        var moneyTransferPage = new MoneyTransferPage();
+        moneyTransferPage.successful(DataHelper.getCardInfo("1"), sumAboveBalance);
+        moneyTransferPage.unsuccessful();
+    }
+
 }
 
